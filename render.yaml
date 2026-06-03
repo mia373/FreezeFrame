@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: freezeframe-proxy
+    runtime: python
+    buildCommand: pip install -r requirements-proxy.txt
+    startCommand: python server/gemini_proxy.py
+    plan: free
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
