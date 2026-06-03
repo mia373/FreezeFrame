@@ -4,7 +4,7 @@
 
 ### Terminal 1 — Voice Proxy
 ```
-cd /path/to/Replay
+cd /path/to/FreezeFrame
 python server/gemini_proxy.py
 ```
 You should see:
@@ -15,7 +15,7 @@ You should see:
 
 ### Terminal 2 — Viewer
 ```
-cd /path/to/Replay/viewer
+cd /path/to/FreezeFrame/viewer
 npm run dev
 ```
 Open: **http://localhost:5173**

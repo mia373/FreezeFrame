@@ -9,6 +9,8 @@ scene/synced_videos/*.mp4
 scene/images/cam*/*.png
 scene/images/cam*/*.jpg
 
+recycle_bin
+
 # Contract B outputs — tracked so Aditya can pull them directly
 # scene/sparse/0/*.bin
 # scene/poses_bounds.npy
