@@ -14,7 +14,7 @@
  *   - Structured command routing for all viewer actions
  */
 
-const PROXY_URL       = 'ws://localhost:8765';
+const PROXY_URL       = import.meta.env.VITE_PROXY_URL || 'ws://localhost:8765';
 const MIC_RATE        = 16000;
 const OUTPUT_RATE     = 24000;
 const RECONNECT_BASE  = 1000;

@@ -816,17 +816,18 @@ def startup_catalog() -> MomentCatalog:
 # ── Main ───────────────────────────────────────────────────────────────
 
 async def main():
-    port = int(os.environ.get("PROXY_PORT", 8765))
+    port = int(os.environ.get("PORT") or os.environ.get("PROXY_PORT", 8765))
+    host = "0.0.0.0" if os.environ.get("PORT") else "localhost"
     catalog = startup_catalog()
 
     print(f"\n[PROXY] Freezeframe Voice Proxy")
     print(f"[PROXY] Model: {LIVE_MODEL} | Port: {port}")
     print(f"[PROXY] {len(catalog.moments)} moments loaded")
-    print(f"[PROXY] Waiting for browser on ws://localhost:{port}\n")
+    print(f"[PROXY] Waiting for browser on ws://{host}:{port}\n")
 
     async with websockets.serve(
         lambda ws: handle_browser(ws, catalog),
-        "localhost",
+        host,
         port,
         ping_interval=None,
     ):
