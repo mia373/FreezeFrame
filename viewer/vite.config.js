@@ -7,6 +7,7 @@ const COMMONTHREADS = path.resolve(__dirname, '..', 'commonthreads');
 function precomputedAlias() {
   return {
     name: 'precomputed-alias',
+    // Dev: serve commonthreads/ at /precomputed/
     configureServer(server) {
       server.middlewares.use('/precomputed', (req, res, next) => {
         const filePath = path.join(COMMONTHREADS, req.url);
@@ -19,6 +20,13 @@ function precomputedAlias() {
           next();
         }
       });
+    },
+    // Build: copy commonthreads/ into dist/precomputed/
+    closeBundle() {
+      if (!fs.existsSync(COMMONTHREADS)) return;
+      const dest = path.resolve(__dirname, 'dist', 'precomputed');
+      fs.cpSync(COMMONTHREADS, dest, { recursive: true });
+      console.log('[precomputed-alias] Copied commonthreads/ → dist/precomputed/');
     },
   };
 }
