@@ -1,0 +1,7 @@
+websockets
+google-genai
+pydantic
+python-dotenv
+requests
+opencv-python-headless
+numpy
