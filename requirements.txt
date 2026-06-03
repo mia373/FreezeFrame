@@ -22,6 +22,8 @@ plyfile
 # Server: Gemini Live proxy
 websockets
 google-genai
+python-dotenv
+requests
 
 # Bullet-time pipeline
 pydantic

@@ -2,7 +2,7 @@
 
 **Bullet-time sports replay from 4 phones. No $500K camera rig required.**
 
-Replay turns a handful of smartphone videos into a fully navigable, frozen-moment 3D experience — the same "Matrix" bullet-time effect that broadcast networks achieve with 30+ synchronized cameras and six-figure production budgets. We do it with 4 iPhones, a clap to sync, and a pipeline that fills the gaps with AI.
+FreezeFrame turns a handful of smartphone videos into a fully navigable, frozen-moment 3D experience — the same "Matrix" bullet-time effect that broadcast networks achieve with 30+ synchronized cameras and six-figure production budgets. We do it with 4 iPhones, a clap to sync, and a pipeline that fills the gaps with AI.
 
 Talk to your replay. Ask it to *"show me the release"* and watch the camera orbit a frozen athlete mid-air while a voice narrates the physics of the moment.
 
@@ -18,7 +18,7 @@ Talk to your replay. Ask it to *"show me the release"* and watch the camera orbi
 | Weeks of post-production | Minutes of automated pipeline |
 | Silent playback | Voice-controlled, AI-narrated |
 
-**For recruiters and coaches**, this means you can film a pickup game, a practice session, or a combine drill from four angles and get back a broadcast-quality replay you can scrub through from any viewing angle. Query specific moments in natural language: *"show me his release point"*, *"jump to the celebration"*, *"describe the mechanics of that throw"*. Replay finds it, freezes it, and lets you orbit around the athlete like you're walking around a paused hologram.
+**For recruiters and coaches**, this means you can film a pickup game, a practice session, or a combine drill from four angles and get back a broadcast-quality replay you can scrub through from any viewing angle. Query specific moments in natural language: *"show me his release point"*, *"jump to the celebration"*, *"describe the mechanics of that throw"*. FreezeFrame finds it, freezes it, and lets you orbit around the athlete like you're walking around a paused hologram.
 
 No camera crew. No editing suite. No budget.
 
@@ -132,7 +132,7 @@ git clone https://github.com/mia373/FreezeFrame.git
 cd FreezeFrame
 
 # Install Python deps
-pip install google-genai websockets pydantic python-dotenv opencv-python-headless numpy requests
+pip install -r requirements.txt
 
 # Install viewer deps
 cd viewer && npm install && cd ..
