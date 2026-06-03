@@ -37,6 +37,8 @@ dist/
 
 # Environment
 .env
+.env.local
+viewer/.env.local
 __pycache__/
 *.pyc
 *.pyo

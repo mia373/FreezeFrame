@@ -825,11 +825,19 @@ async def main():
     print(f"[PROXY] {len(catalog.moments)} moments loaded")
     print(f"[PROXY] Waiting for browser on ws://{host}:{port}\n")
 
+    async def process_request(connection, request):
+        # Respond to Render health checks (HEAD/GET non-WebSocket requests)
+        if request.headers.get("upgrade", "").lower() != "websocket":
+            from websockets.http11 import Response
+            from websockets.datastructures import Headers
+            return Response(200, "OK", Headers([("content-length", "2"), ("content-type", "text/plain")]), b"OK")
+
     async with websockets.serve(
         lambda ws: handle_browser(ws, catalog),
         host,
         port,
         ping_interval=None,
+        process_request=process_request,
     ):
         try:
             await asyncio.Future()
