@@ -8,6 +8,26 @@ Talk to your replay. Ask it to *"show me the release"* and watch the camera orbi
 
 ---
 
+<p align="center">
+  <img src="docs/images/1.png" width="800" alt="FreezeFrame landing page"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/2.png" width="49%" alt="Camera sync — extracting features"/>
+  <img src="docs/images/3.png" width="49%" alt="Audio waveform sync"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/4.png" width="49%" alt="The Keanu Dodge"/>
+  <img src="docs/images/5.png" width="49%" alt="The Roundhouse Kick"/>
+</p>
+<p align="center">
+  <img src="docs/images/6.png" width="49%" alt="The Water Throw"/>
+  <img src="docs/images/7.png" width="49%" alt="The Kobe Fadeaway"/>
+</p>
+
+---
+
 ## Why This Matters
 
 | Traditional Bullet-Time | Replay |
