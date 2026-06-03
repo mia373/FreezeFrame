@@ -1,18 +1,14 @@
 VENV_PYTHON = $(CURDIR)/.venv/bin/python
 VIEWER_PORT = 5173
+PROXY_PORT  = 8765
 
-.PHONY: start stop install setup-agent
+.PHONY: start stop install
 
 start:
-	@echo "══ Rebuilding ElevenLabs agent..."
-	@$(VENV_PYTHON) server/create_agent.py
-	@echo "══ Killing old processes on port $(VIEWER_PORT)..."
-	@lsof -ti:$(VIEWER_PORT) | xargs kill -9 2>/dev/null || true
-	@sleep 0.3
-	@echo "══ Starting viewer on http://localhost:$(VIEWER_PORT)..."
-	cd viewer && npm run dev
+	python start.py
 
 stop:
+	@pkill -f "server/gemini_proxy.py" 2>/dev/null || true
 	@lsof -ti:$(VIEWER_PORT) | xargs kill -9 2>/dev/null || true
 	@echo "Stopped."
 
@@ -21,9 +17,4 @@ install:
 	$(VENV_PYTHON) -m pip install --upgrade pip
 	$(VENV_PYTHON) -m pip install websockets google-genai pydantic python-dotenv opencv-python-headless numpy requests
 	cd viewer && npm install
-	@echo "Done. Run 'make start' to launch."
-
-setup-agent:
-	@echo "Creating/updating ElevenLabs agent..."
-	$(VENV_PYTHON) server/create_agent.py
-	@echo "Agent ready."
+	@echo "Done. Set GEMINI_API_KEY in .env then run 'make start'."

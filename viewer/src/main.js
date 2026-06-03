@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ImageStripPlayer } from './image-strip-player.js';
-import { connectVoice, setMicActive, isMicActive, reportFrameChange, setCurrentScene, resetAgent } from './voice.js';
+import { connectVoice, setMicActive, isMicActive, reportFrameChange, setCurrentScene, resetAgent } from './gemini_live.js';
 
 // ── DOM refs ──────────────────────────────────────────────────────────
 

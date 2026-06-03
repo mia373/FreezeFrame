@@ -1,4 +1,4 @@
-# Replay
+# FreezeFrame
 
 **Bullet-time sports replay from 4 phones. No $500K camera rig required.**
 
@@ -128,20 +128,23 @@ The AI has full access to the moment catalog and viewer controls via function ca
 
 ```bash
 # Clone and install
-git clone https://github.com/adityasingh2400/Replay.git
-cd Replay
-make install
+git clone https://github.com/mia373/FreezeFrame.git
+cd FreezeFrame
+
+# Install Python deps
+pip install google-genai websockets pydantic python-dotenv opencv-python-headless numpy requests
+
+# Install viewer deps
+cd viewer && npm install && cd ..
 
 # Set your API key
-export GEMINI_API_KEY=your_key_here
+cp .env.example .env
+# Edit .env and add your GEMINI_API_KEY (get one at aistudio.google.com)
 
-# Start the viewer + voice proxy
-make start
+# Start everything (works on Windows, Mac, Linux)
+python start.py
 # Viewer: http://localhost:5173
 # Voice:  ws://localhost:8765
-
-# Generate bullet-time for a moment
-python -m bullet_time.pipeline --query "show me the release"
 ```
 
 ---
@@ -155,7 +158,7 @@ python -m bullet_time.pipeline --query "show me the release"
 | Moment Detection | Gemini 2.5 Flash |
 | Depth Estimation | Depth Anything V2 |
 | Inpainting | Imagen 3 (Vertex AI) |
-| Voice Control | Gemini Live API |
+| Voice Control | Gemini Live (`gemini-3.1-flash-live-preview`) |
 | Viewer | Three.js + Spark.js + Vite |
 | Camera Sync | Audio clap detection (FFT cross-correlation) |
 

@@ -171,6 +171,7 @@ let _audioCtx        = null;
 let _workletNode     = null;
 let _micSource       = null;
 let _speechRecStarted = false;
+let _micActive       = true;
 
 // Callbacks from main.js
 let _onNavigate        = null;
@@ -188,6 +189,30 @@ function setIndicator(state) {
 
 export function isConnected() {
   return _ws !== null && _ws.readyState === WebSocket.OPEN && _sessionReady;
+}
+
+export function isMicActive() {
+  return _micActive;
+}
+
+export function setMicActive(active) {
+  _micActive = active;
+  setIndicator(active ? (_sessionReady ? 'listening' : 'connecting') : 'idle');
+}
+
+export function reportFrameChange(frame, total) {
+  if (!_ws || _ws.readyState !== WebSocket.OPEN) return;
+  _ws.send(JSON.stringify({ type: 'frame_change', frame, total }));
+}
+
+export function setCurrentScene(label) {
+  if (!_ws || _ws.readyState !== WebSocket.OPEN || !label) return;
+  _ws.send(JSON.stringify({ type: 'text_in', text: `[scene context: now viewing "${label}"]` }));
+}
+
+export function resetAgent() {
+  _micActive = false;
+  setIndicator('idle');
 }
 
 export function sendText(text) {
@@ -414,9 +439,9 @@ export async function connectVoice(opts = {}) {
     }
   };
 
-  // Forward mic PCM to proxy (gated on session readiness)
+  // Forward mic PCM to proxy (gated on session readiness and mic toggle)
   _workletNode.port.onmessage = (e) => {
-    if (!_sessionReady || ws.readyState !== WebSocket.OPEN) return;
+    if (!_micActive || !_sessionReady || ws.readyState !== WebSocket.OPEN) return;
     const bytes = new Uint8Array(e.data);
     const b64   = uint8ToBase64(bytes);
     ws.send(JSON.stringify({ type: 'audio_in', data: b64 }));

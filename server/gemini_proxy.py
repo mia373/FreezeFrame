@@ -45,10 +45,33 @@ from bullet_time.schemas import MomentCatalog
 
 # ── Config ─────────────────────────────────────────────────────────────
 
-ROOT           = Path(__file__).resolve().parent.parent
-RAW_VIDEOS_DIR = ROOT / "raw_videos"
-CATALOG_CACHE  = ROOT / "bullet_time" / "bullet_time_catalog.json"
-LIVE_MODEL     = "gemini-3.1-flash-live-preview"
+ROOT             = Path(__file__).resolve().parent.parent
+RAW_VIDEOS_DIR   = ROOT / "raw_videos"
+CATALOG_CACHE    = ROOT / "bullet_time" / "bullet_time_catalog.json"
+COMMONTHREADS    = ROOT / "commonthreads"
+LIVE_MODEL       = "gemini-3.1-flash-live-preview"
+
+
+def load_scenes():
+    """Load precomputed bullet-time scenes from commonthreads/."""
+    scenes = []
+    if not COMMONTHREADS.exists():
+        return scenes
+    for scene_dir in sorted(COMMONTHREADS.iterdir()):
+        manifest_path = scene_dir / "manifest.json"
+        if not manifest_path.exists():
+            continue
+        manifest = json.loads(manifest_path.read_text())
+        scenes.append({
+            "slug": scene_dir.name,
+            "label": manifest.get("moment", {}).get("label", scene_dir.name),
+            "description": manifest.get("moment", {}).get("description", ""),
+            "total_frames": manifest.get("total_frames", len(manifest.get("frames", []))),
+        })
+    return scenes
+
+
+SCENES = load_scenes()
 
 # ── Logging ────────────────────────────────────────────────────────────
 
@@ -265,16 +288,6 @@ def get_nearest_moment(catalog, frame, radius=MOMENT_RADIUS):
 # ── System Prompt ──────────────────────────────────────────────────────
 
 def build_system_prompt(catalog: MomentCatalog, unlocked_moments=None) -> str:
-    moments = unlocked_moments if unlocked_moments is not None else catalog.moments
-
-    if moments:
-        moments_text = "\n".join(
-            f"  [{i}] \"{m.label}\" — {m.description} (frame {m.frame_number}, {m.timestamp_sec:.1f}s)"
-            for i, m in enumerate(moments)
-        )
-    else:
-        moments_text = "  No moments unlocked yet — keep watching."
-
     return f"""You are FREEZEFRAME — the AI voice of a bullet-time sports system built by a team of four.
 
 You have two modes. You always know which one you're in.
@@ -285,19 +298,22 @@ MODE 1: DEMO MODE (default)
 Your natural state. Warm, funny, emotionally real. Short punchy sentences when things get electric. \
 You have memory — you build on what was said, you don't reset.
 
-COMMAND ROUTING — always call the matching tool:
+COMMAND ROUTING — always call the matching tool. Be generous with matching:
 - "What is this" / "describe" / "what happened" / "what am I looking at" → describe_moment
 - "Explain" / "how" / "break it down" / "technique" / "physics" → explain_moment
 - "Show me [X]" / "go to [X]" / "freeze on [X]" / "jump to [X]" → navigate_to_moment
-- "Best moment" / "most dramatic" / "blow my mind" → navigate_to_moment (pick most dramatic)
+- "Best moment" / "most dramatic" / "blow my mind" / "something cool" → navigate_to_moment (pick most dramatic)
 - "Zoom in" / "closer" / "get in there" → zoom_viewer(action="in")
 - "Zoom out" / "pull back" / "wider" → zoom_viewer(action="out")
 - "Reset zoom" / "normal view" → zoom_viewer(action="reset")
-- "Orbit" / "spin" / "rotate" / "360" / "all angles" → play_orbit
+- "Orbit" / "spin" / "spin around" / "rotate" / "go around" / "360" / "all angles" → play_orbit
 - "Stop" / "hold" / "freeze" / "pause" → stop_orbit
-- "Boomerang" / "loop it" / "bounce" → play_boomerang
+- "Boomerang" / "loop it" / "bounce" / "do that again" → play_boomerang
 - "Next" / "next angle" / "advance" → step_frame(direction="forward")
 - "Previous" / "go back" / "back one" → step_frame(direction="back")
+
+RULE: spin/orbit/rotate phrases ALWAYS call play_orbit — never navigate_to_moment. \
+If not in a scene yet, navigate first then orbit.
 
 After calling a tool, react to what you just showed them. Be a hype man.
 
@@ -338,20 +354,18 @@ just what you point it at.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CONTEXT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LOADED MOMENTS (only moments the viewer has reached — future moments are locked):
-{moments_text}
+BULLET-TIME SCENES — ALWAYS AVAILABLE (call navigate_to_moment for any of these, any time):
+{chr(10).join(f'  [{s["slug"]}] "{s["label"]}" — {s.get("description", "")}' for s in SCENES) or "  No scenes loaded."}
 
-SCENE: {catalog.scene_description}
+When someone says "keanu", "kobe", "roundhouse", "kick", "water", "dodge", "fadeaway", \
+"best moment", "most dramatic", "show me something", or any scene name above → immediately \
+call navigate_to_moment. These scenes are always ready — never say "we haven't gotten there yet."
+
+Do NOT reference or suggest any other moments, scenes, or content beyond the list above.
 
 FRAME AWARENESS: When you call describe_moment or explain_moment, you receive a detailed \
 frame_context telling you exactly what's on screen. Use it verbatim — it's accurate and concise. \
 Add personality but don't contradict the facts.
-
-IMPORTANT — MOMENT LOCKING:
-- You can ONLY navigate to moments listed above (already seen by the viewer).
-- If someone asks about a moment that hasn't happened yet, say something like "We haven't gotten \
-there yet — keep watching" or "That's coming up, stay with me."
-- As the video plays, more moments unlock automatically.
 
 JUDGE RELAY: "The judge has a question" → answer the next speaker directly.
 
@@ -388,16 +402,24 @@ def execute_tool(catalog, state, fc, sid):
 
     if name == "navigate_to_moment":
         event_name = args.get("event_name", "")
+
+        # First try to match against precomputed viewer scenes (slug-based)
+        scene = _match_scene(event_name)
+        if scene:
+            browser_msg = {"type": "navigate", "slug": scene["slug"], "label": scene["label"]}
+            log("TOOL", f"→ navigate slug={scene['slug']} label={scene['label']}", sid)
+            return {"status": "navigating", "label": scene["label"], "slug": scene["slug"]}, browser_msg
+
+        # Fall back to catalog moment matching (frame-based)
         unlocked = get_unlocked_moments(catalog, state["high_water"])
         if not unlocked:
             result = {"error": "No moments unlocked yet — the video hasn't played far enough."}
             log("TOOL", "→ BLOCKED: no moments unlocked", sid)
             return result, None
 
-        # Only match against unlocked moments
         result = _match_moment_from(unlocked, event_name)
         if "error" in result:
-            result = {"error": f"That moment hasn't happened yet. Keep watching — it's coming."}
+            result = {"error": "That moment hasn't happened yet. Keep watching — it's coming."}
             log("TOOL", f"→ BLOCKED: '{event_name}' not unlocked", sid)
             return result, None
 
@@ -468,6 +490,44 @@ def execute_tool(catalog, state, fc, sid):
     else:
         log("TOOL", f"→ UNKNOWN tool: {name}", sid)
         return {"error": f"Unknown tool: {name}"}, None
+
+
+def _match_scene(event_name: str):
+    """Match a query against precomputed commonthreads scenes by slug/label.
+
+    For 'best/most dramatic/blow my mind' queries, returns the scene whose
+    label/slug scores highest. Returns None if no scenes are loaded.
+    """
+    if not SCENES:
+        return None
+    query = event_name.lower()
+
+    # Generic "best/dramatic" → pick most visually compelling (roundhouse or water_throw rank first)
+    dramatic_keywords = {"dramatic", "best", "blow", "mind", "exciting", "intense", "amazing", "incredible"}
+    if any(w in query.split() for w in dramatic_keywords):
+        # Prefer roundhouse_kick > water_throw > kobe_fadeaway > keanu_dodge
+        priority = ["roundhouse_kick", "water_throw", "kobe_fadeaway", "keanu_dodge"]
+        for slug in priority:
+            for s in SCENES:
+                if s["slug"] == slug:
+                    return s
+        return SCENES[0]
+
+    best = None
+    best_score = -1
+    for s in SCENES:
+        score = 0
+        for word in query.split():
+            if len(word) < 3:
+                continue
+            if word in s["slug"]:        score += 0.8
+            if word in s["label"].lower(): score += 0.6
+            if word in s.get("description", "").lower(): score += 0.2
+        if score > best_score:
+            best_score = score
+            best = s
+
+    return best if best_score > 0 else None
 
 
 def _match_moment_from(moments, event_name):
@@ -770,8 +830,14 @@ async def main():
         port,
         ping_interval=None,
     ):
-        await asyncio.Future()
+        try:
+            await asyncio.Future()
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            print("\n[PROXY] Shutting down.")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

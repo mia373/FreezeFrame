@@ -79,13 +79,12 @@ Open: **http://localhost:5173**
 
 | Component | What it does |
 |---|---|
-| `server/voice_proxy.py` | Lightweight signing server — generates signed WebSocket URLs |
-| `server/create_agent.py` | Creates/updates the ElevenLabs Conversational AI agent |
-| `viewer/src/voice.js` | Browser voice client — 11Labs WebSocket, mic capture, tool execution |
+| `server/gemini_proxy.py` | Python WebSocket proxy — bridges browser ↔ Gemini Live API |
+| `viewer/src/gemini_live.js` | Browser voice client — mic capture, audio playback, tool handling |
 | `viewer/src/main.js` | Three.js viewer — frame tracking, zoom, boomerang, spacebar PTT |
 | `viewer/public/pcm-processor.js` | AudioWorklet — 32ms PCM chunks at 16kHz |
-| Voice engine | ElevenLabs Conversational AI (Charlie voice) |
-| Signing server | `ws://localhost:8765` |
+| Voice engine | Gemini Live (`gemini-3.1-flash-live-preview`) |
+| Voice proxy | `ws://localhost:8765` |
 | Viewer | `http://localhost:5173` |
 
 ---
@@ -94,13 +93,11 @@ Open: **http://localhost:5173**
 
 ```
 Browser mic → AudioWorklet (16kHz PCM)
-  → 11Labs WebSocket (direct, signed URL)
-    → STT + LLM + TTS (all 11Labs)
-  ← audio response + client tool calls
+  → WebSocket → Python proxy (server/gemini_proxy.py)
+    → Gemini Live API (STT + LLM + TTS)
+  ← audio response + tool calls → proxy → browser
 Browser executes tools locally (navigate, zoom, orbit, etc.)
 ```
-
-No Python proxy in the audio path. The signing server only runs once per session to issue a URL.
 
 ---
 
@@ -109,8 +106,8 @@ No Python proxy in the audio path. The signing server only runs once per session
 | Problem | Fix |
 |---|---|
 | "Mic not working" | Refresh browser, allow mic permissions |
-| "Voice server not running" | `make start` — signing server must be running |
-| "Not responding" | Hold spacebar while speaking. Check debug console |
-| "0 moments loaded" | Run `make setup-agent` to recreate agent with catalog |
-| "Session expired" | Refresh the page (gets a new signed URL) |
-| "Agent not found" | Check `.env` for `ELEVENLABS_AGENT_ID`, run `make setup-agent` |
+| "Connecting..." stuck | Proxy not running or `GEMINI_API_KEY` not set in `.env` |
+| "Not responding" | Press spacebar while speaking. Check browser console |
+| "0 moments loaded" | Add videos to `raw_videos/` and restart proxy |
+| Proxy crashes | Check terminal for error — usually a missing API key |
+| "Session expired" | Refresh the page — proxy auto-reconnects |

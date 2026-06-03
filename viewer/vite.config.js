@@ -1,34 +1,39 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import path from 'path';
+import fs from 'fs';
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, path.resolve(__dirname, '..'), '');
-  const agentId = env.ELEVENLABS_AGENT_ID;
-  const apiKey  = env.ELEVENLABS_API_KEY;
+const COMMONTHREADS = path.resolve(__dirname, '..', 'commonthreads');
 
+function precomputedAlias() {
   return {
-    server: {
-      port: 5173,
-      open: true,
-      fs: {
-        allow: [path.resolve(__dirname, '..')],
-      },
-      proxy: {
-        '/api/signed-url': {
-          target: `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
-          changeOrigin: true,
-          rewrite: () => '',
-          configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq) => {
-              proxyReq.setHeader('xi-api-key', apiKey);
-            });
-          },
-        },
-      },
-    },
-    build: {
-      outDir: 'dist',
-      sourcemap: true,
+    name: 'precomputed-alias',
+    configureServer(server) {
+      server.middlewares.use('/precomputed', (req, res, next) => {
+        const filePath = path.join(COMMONTHREADS, req.url);
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          const ext = path.extname(filePath).toLowerCase();
+          const types = { '.json': 'application/json', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png' };
+          res.setHeader('Content-Type', types[ext] || 'application/octet-stream');
+          fs.createReadStream(filePath).pipe(res);
+        } else {
+          next();
+        }
+      });
     },
   };
+}
+
+export default defineConfig({
+  plugins: [precomputedAlias()],
+  server: {
+    port: 5173,
+    open: true,
+    fs: {
+      allow: [path.resolve(__dirname, '..')],
+    },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+  },
 });
